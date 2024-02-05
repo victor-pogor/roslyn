@@ -28,4 +28,10 @@ internal sealed class FSharpDefinitionLocationService(
                 return items?.Select(i => (i.Document, i.SourceSpan));
             },
             cancellationToken);
+
+    public Task<DefinitionLocation?> GetTypeDefinitionLocationAsync(Document document, int position, CancellationToken cancellationToken)
+    {
+        // TODO implement this
+        throw new NotImplementedException();
+    }
 }

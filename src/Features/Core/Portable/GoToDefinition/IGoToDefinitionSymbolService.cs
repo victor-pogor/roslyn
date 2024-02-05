@@ -13,6 +13,8 @@ internal interface IGoToDefinitionSymbolService : ILanguageService
 {
     Task<(ISymbol?, Project, TextSpan)> GetSymbolProjectAndBoundSpanAsync(Document document, int position, CancellationToken cancellationToken);
 
+    Task<(ISymbol?, Project, TextSpan)> GetSymbolProjectAndBoundSpanAsync(Document document, int position, bool searchTypeDefinition, CancellationToken cancellationToken);
+
     /// <summary>
     /// If the position is on a control flow keyword (continue, break, yield, return , etc), returns the relevant position in the corresponding control flow statement.
     /// Otherwise, returns null.

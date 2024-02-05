@@ -13,6 +13,7 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Navigation;
 
+// TODO: update docs
 /// <summary>
 /// Service used by "go to definition" and "ctrl-click on symbol" to find the symbol definition location and navigate to
 /// it. Specifically, services that do not intend to show any interesting UI for the symbol definition, they just intend
@@ -28,6 +29,16 @@ internal interface IDefinitionLocationService : ILanguageService
     /// position is within.
     /// </summary>
     Task<DefinitionLocation?> GetDefinitionLocationAsync(
+        Document document, int position, CancellationToken cancellationToken);
+
+    // TODO: update docs
+    /// <summary>
+    /// If the supplied <paramref name="position"/> is on a code construct with a navigable location, then this
+    /// returns that <see cref="INavigableLocation"/>.  The <see cref="TextSpan"/> returned in the span of the
+    /// symbol in the code that references that navigable location.  e.g. the full identifier token that the
+    /// position is within.
+    /// </summary>
+    Task<DefinitionLocation?> GetTypeDefinitionLocationAsync(
         Document document, int position, CancellationToken cancellationToken);
 }
 

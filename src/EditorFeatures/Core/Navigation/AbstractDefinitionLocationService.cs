@@ -83,6 +83,49 @@ namespace Microsoft.CodeAnalysis.Navigation
             }
         }
 
+        public async Task<DefinitionLocation?> GetTypeDefinitionLocationAsync(Document document, int position, CancellationToken cancellationToken)
+        {
+            var symbolService = document.GetRequiredLanguageService<IGoToDefinitionSymbolService>();
+            var (controlFlowTarget, controlFlowSpan) = await symbolService.GetTargetIfControlFlowAsync(
+                document, position, cancellationToken).ConfigureAwait(false);
+            if (controlFlowTarget != null)
+            {
+                var location = await GetNavigableLocationAsync(
+                    document, controlFlowTarget.Value, cancellationToken).ConfigureAwait(false);
+                return location is null ? null : new DefinitionLocation(location, new DocumentSpan(document, controlFlowSpan));
+            }
+            else
+            {
+                // Try to compute the referenced symbol and attempt to go to definition for the symbol.
+                var (symbol, project, span) = await symbolService.GetSymbolProjectAndBoundSpanAsync(
+                    document, position, true, cancellationToken).ConfigureAwait(false);
+                if (symbol is null)
+                    return null;
+
+                // if the symbol only has a single source location, and we're already on it,
+                // try to see if there's a better symbol we could navigate to.
+                var remappedLocation = await GetAlternativeLocationIfAlreadyOnDefinitionAsync(
+                    project, position, symbol, originalDocument: document, cancellationToken).ConfigureAwait(false);
+                if (remappedLocation != null)
+                    return new DefinitionLocation(remappedLocation, new DocumentSpan(document, span));
+
+                var isThirdPartyNavigationAllowed = await IsThirdPartyNavigationAllowedAsync(
+                    symbol, position, document, cancellationToken).ConfigureAwait(false);
+
+                var location = await GoToDefinitionHelpers.GetDefinitionLocationAsync(
+                    symbol,
+                    project.Solution,
+                    _threadingContext,
+                    _streamingPresenter,
+                    thirdPartyNavigationAllowed: isThirdPartyNavigationAllowed,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+                if (location is null)
+                    return null;
+
+                return new DefinitionLocation(location, new DocumentSpan(document, span));
+            }
+        }
+
         /// <summary>
         /// Attempts to find a better definition for the symbol, if the user is already on the definition of it.
         /// </summary>

@@ -20,7 +20,12 @@ namespace Microsoft.CodeAnalysis.GoToDefinition
 
         protected abstract int? GetTargetPositionIfControlFlow(SemanticModel semanticModel, SyntaxToken token);
 
-        public async Task<(ISymbol?, Project, TextSpan)> GetSymbolProjectAndBoundSpanAsync(Document document, int position, CancellationToken cancellationToken)
+        public Task<(ISymbol?, Project, TextSpan)> GetSymbolProjectAndBoundSpanAsync(Document document, int position, CancellationToken cancellationToken)
+        {
+            return GetSymbolProjectAndBoundSpanAsync(document, position, searchTypeDefinition: false, cancellationToken);
+        }
+
+        public async Task<(ISymbol?, Project, TextSpan)> GetSymbolProjectAndBoundSpanAsync(Document document, int position, bool searchTypeDefinition, CancellationToken cancellationToken)
         {
             var project = document.Project;
             var services = document.Project.Solution.Services;
@@ -28,14 +33,23 @@ namespace Microsoft.CodeAnalysis.GoToDefinition
             var semanticModel = await document.GetRequiredSemanticModelAsync(cancellationToken).ConfigureAwait(false);
             var semanticInfo = await SymbolFinder.GetSemanticInfoAtPositionAsync(semanticModel, position, services, cancellationToken).ConfigureAwait(false);
 
-            // Prefer references to declarations. It's more likely that the user is attempting to 
-            // go to a definition at some other location, rather than the definition they're on. 
-            // This can happen when a token is at a location that is both a reference and a definition.
-            // For example, on an anonymous type member declaration.
-            var symbol = semanticInfo.AliasSymbol
-                ?? semanticInfo.ReferencedSymbols.FirstOrDefault()
-                ?? semanticInfo.DeclaredSymbol
-                ?? semanticInfo.Type;
+            ISymbol? symbol;
+
+            if (searchTypeDefinition)
+            {
+                symbol = semanticInfo.Type;
+            }
+            else
+            {
+                // Prefer references to declarations. It's more likely that the user is attempting to 
+                // go to a definition at some other location, rather than the definition they're on. 
+                // This can happen when a token is at a location that is both a reference and a definition.
+                // For example, on an anonymous type member declaration.
+                symbol = semanticInfo.AliasSymbol
+                    ?? semanticInfo.ReferencedSymbols.FirstOrDefault()
+                    ?? semanticInfo.DeclaredSymbol
+                    ?? semanticInfo.Type;
+            }
 
             if (symbol is null)
             {
