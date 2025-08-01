@@ -12484,4 +12484,33 @@ interface I
             LanguageVersion = LanguageVersionExtensions.CSharpNext,
         }.RunAsync();
     }
+
+    [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/78294")]
+    public async Task TestIfEmptyClass()
+    {
+        await TestInRegularAndScriptAsync(
+            """
+            interface I 
+            {
+                void M();
+            }
+            public class C : I
+            {
+                {|CS0535|}
+            }
+            """,
+            """
+            interface I 
+            {
+                void M();
+            }
+            public class C : I
+            {
+                public void M()
+                {
+                    throw new System.NotImplementedException();
+                }
+            }
+            """);
+    }
 }
